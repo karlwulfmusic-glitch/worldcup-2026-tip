@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000b2a;
+  --foreground: #ffffff;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', sans-serif; /* Eller din valda font */
+  overflow-x: hidden;
+}
+
+@layer components {
+  /* Den ikoniska glansiga vita knappen */
+  .fifa-btn-white {
+    @apply relative bg-white text-black font-black italic uppercase rounded-full 
+           shadow-[0_10px_40px_rgba(255,255,255,0.3)] transition-all active:scale-95 
+           flex items-center justify-center overflow-hidden border-b-4 border-neutral-300;
+    background: linear-gradient(to bottom, #ffffff 0%, #e0e0e0 100%);
+  }
+
+  .fifa-btn-white::before {
+    content: "";
+    @apply absolute inset-x-0 top-0 h-1/2 bg-white/60 rounded-full;
+  }
+
+  /* 2006 Sändningsgrafik-bubblan */
+  .fifa-match-card {
+    @apply relative bg-gradient-to-b from-[#1a1a1a] to-black border border-white/10 shadow-2xl;
+    border-radius: 0 40px 0 40px;
+  }
+
+  /* Den tunna blå/gröna linjen från loggan */
+  .fifa-accent-line {
+    @apply absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-[#0044ff] to-[#00c853];
+  }
+
+  /* Kapsel för Swish/Info */
+  .fifa-capsule {
+    @apply relative flex items-center justify-between px-8 py-4 rounded-full border border-white/20;
+    background: linear-gradient(90deg, #001d81 0%, #0044ff 100%);
+    box-shadow: inset 0 2px 10px rgba(255,255,255,0.2);
+  }
+
+  /* Dölj scrollbar men behåll funktionalitet */
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
