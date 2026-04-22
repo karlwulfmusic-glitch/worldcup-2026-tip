@@ -139,8 +139,21 @@ export default function Page() {
     <div className="bg-black text-white selection:bg-blue-500 overflow-x-hidden">
       {/* SLIDE 1: HERO */}
       <section className="h-screen flex flex-col items-center justify-center relative px-4 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center z-0 opacity-60" style={{ backgroundImage: "url('/hero-bg.jpg')" }} />
+        
+        {/* DESKTOP BAKGRUND (Visas på dator, döljs på mobil) */}
+        <div 
+          className="absolute inset-0 hidden md:block bg-cover bg-center bg-no-repeat z-0 opacity-60" 
+          style={{ backgroundImage: "url('/hero-bg.jpg')" }} 
+        />
+
+        {/* MOBIL BAKGRUND (Visas på mobil, döljs på dator) */}
+        <div 
+          className="absolute inset-0 block md:hidden bg-cover bg-center bg-no-repeat z-0 opacity-60" 
+          style={{ backgroundImage: "url('/hero-bg-mobile.jpg')" }} 
+        />
+        
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-1" />
+        
         <h1 className="text-[14vw] font-black italic uppercase z-10 leading-[0.8]">
           <span className="block text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">WULFENS</span>
           <span className="block text-[#001D81]">VM TIP</span>
