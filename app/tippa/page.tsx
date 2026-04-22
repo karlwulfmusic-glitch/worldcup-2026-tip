@@ -137,34 +137,27 @@ export default function Page() {
 
   if (currentStep < 3) return (
     <div className="bg-black text-white selection:bg-blue-500 overflow-x-hidden">
-      {/* SLIDE 1: HERO */}
-      <section className="h-screen flex flex-col items-center justify-center relative px-4 text-center overflow-hidden">
-        
-        {/* DESKTOP BAKGRUND (Visas på dator, döljs på mobil) */}
-        <div 
-          className="absolute inset-0 hidden md:block bg-cover bg-center bg-no-repeat z-0 opacity-60" 
-          style={{ backgroundImage: "url('/hero-bg.jpg')" }} 
-        />
+     {/* SLIDE 1: HERO */}
+<section className="h-screen flex flex-col items-center justify-start pt-[15vh] md:justify-center relative px-4 text-center overflow-hidden">
+  
+  {/* Bakgrundsbilder (samma som innan) */}
+  <div className="absolute inset-0 hidden md:block bg-cover bg-center bg-no-repeat z-0 opacity-60" style={{ backgroundImage: "url('/hero-bg.jpg')" }} />
+  <div className="absolute inset-0 block md:hidden bg-cover bg-center bg-no-repeat z-0 opacity-60" style={{ backgroundImage: "url('/hero-bg-mobile.jpg')" }} />
+  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-1" />
+  
+  {/* Rubriken - Nu med lägre placering på mobil via justify-start och pt-[15vh] */}
+  <h1 className="text-[14vw] md:text-[10vw] font-black italic uppercase z-10 leading-[0.8] mt-10 md:mt-0">
+    <span className="block text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">WULFENS</span>
+    <span className="block text-[#001D81]">VM TIP</span>
+  </h1>
 
-        {/* MOBIL BAKGRUND (Visas på mobil, döljs på dator) */}
-        <div 
-          className="absolute inset-0 block md:hidden bg-cover bg-center bg-no-repeat z-0 opacity-60" 
-          style={{ backgroundImage: "url('/hero-bg-mobile.jpg')" }} 
-        />
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60 z-1" />
-        
-        <h1 className="text-[14vw] font-black italic uppercase z-10 leading-[0.8]">
-          <span className="block text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">WULFENS</span>
-          <span className="block text-[#001D81]">VM TIP</span>
-        </h1>
-        <div className="z-10 mt-16">
-          <button onClick={() => reglerRef.current?.scrollIntoView({behavior:'smooth'})} className="p-4 rounded-full border-2 border-white/40 bg-black/30 backdrop-blur-md animate-bounce">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-          </button>
-        </div>
-      </section>
-
+  {/* Pil-knappen flyttas också med eller läggs längre ner */}
+  <div className="z-10 mt-auto mb-10 md:mt-16 md:mb-0">
+    <button onClick={() => reglerRef.current?.scrollIntoView({behavior:'smooth'})} className="p-4 rounded-full border-2 border-white/40 bg-black/30 backdrop-blur-md animate-bounce">
+      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+    </button>
+  </div>
+</section>
       {/* SLIDE 2: REGLER & POÄNG */}
       <section ref={reglerRef} className="min-h-screen flex items-center justify-center p-4 md:p-6 bg-[#00041a] py-12 md:py-20">
         <div className="max-w-5xl w-full space-y-8 md:space-y-12 relative z-10">
