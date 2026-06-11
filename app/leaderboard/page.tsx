@@ -60,6 +60,29 @@ export default function Leaderboard() {
 
   useEffect(() => {
     fetchLeaderboard();
+
+    const channel = supabase
+      .channel("leaderboard-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "actual_results" },
+        () => fetchLeaderboard()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "picks" },
+        () => fetchLeaderboard()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        () => fetchLeaderboard()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -180,24 +203,48 @@ export default function Leaderboard() {
     return correctFinalTeams * 10;
   };
 
+  const fetchAllRows = async (tableName: string) => {
+    const pageSize = 1000;
+    let from = 0;
+    let allRows: any[] = [];
+
+    while (true) {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select("*")
+        .range(from, from + pageSize - 1);
+
+      if (error) throw error;
+
+      const rows = data || [];
+      allRows = [...allRows, ...rows];
+
+      if (rows.length < pageSize) break;
+
+      from += pageSize;
+    }
+
+    return allRows;
+  };
+
   const fetchLeaderboard = async () => {
     setLoading(true);
 
-    const [uR, rR, pR] = await Promise.all([
-      supabase.from("users").select("*"),
-      supabase.from("actual_results").select("*"),
-      supabase.from("picks").select("*"),
-    ]);
+    try {
+      const [allUsers, allResults, allPicks] = await Promise.all([
+        fetchAllRows("users"),
+        fetchAllRows("actual_results"),
+        fetchAllRows("picks"),
+      ]);
 
-    if (uR.data && rR.data && pR.data) {
-      setActualResults(rR.data);
+      setActualResults(allResults);
 
       const realGS: Record<string, string[]> = {};
 
       GROUP_CODES.forEach((c) => {
         const gm = worldCup2026Matches.filter((m) => m.group === c);
 
-        const act = rR.data
+        const act = allResults
           .filter((r) => r.is_finished && r.match_id.startsWith(`G-${c}`))
           .map((r) => ({
             match_id: r.match_id,
@@ -208,16 +255,16 @@ export default function Leaderboard() {
         realGS[c] = calculateStandings(gm, act);
       });
 
-      const formatted = [...uR.data]
+      const formatted = [...allUsers]
         .map((u: any) => {
-          const p = pR.data.filter((x) => x.user_id === u.id);
+          const p = allPicks.filter((x) => x.user_id === u.id);
 
           let matchPts = 0;
           let groupPts = 0;
           let specialPts = 0;
 
           p.filter((x) => x.match_id.startsWith("G-")).forEach((x) => {
-            const act = rR.data.find((r) => r.match_id === x.match_id);
+            const act = allResults.find((r) => r.match_id === x.match_id);
             matchPts += calculateGroupMatchPoints(x, act);
           });
 
@@ -235,7 +282,7 @@ export default function Leaderboard() {
 
             const actualWinnersInStage = [
               ...new Set(
-                rR.data
+                allResults
                   .filter(
                     (r) =>
                       r.is_finished &&
@@ -271,7 +318,7 @@ export default function Leaderboard() {
               (m) => m.group === c
             );
 
-            const finishedGroupMatches = rR.data.filter(
+            const finishedGroupMatches = allResults.filter(
               (r) => r.match_id.startsWith(`G-${c}`) && r.is_finished
             ).length;
 
@@ -288,9 +335,9 @@ export default function Leaderboard() {
             });
           });
 
-          specialPts += calculateFinalTeamBonus(p, rR.data);
+          specialPts += calculateFinalTeamBonus(p, allResults);
 
-          const ts = rR.data.find((r) => r.match_id === "TOP_SCORER");
+          const ts = allResults.find((r) => r.match_id === "TOP_SCORER");
 
           if (
             ts?.is_finished &&
@@ -312,9 +359,11 @@ export default function Leaderboard() {
         .sort((a: any, b: any) => b.total_points - a.total_points);
 
       setLeaderboard([...formatted]);
+    } catch (err) {
+      console.error("LEADERBOARD FETCH ERROR:", err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleShowPicks = async (u: any) => {
