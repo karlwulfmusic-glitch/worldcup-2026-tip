@@ -120,6 +120,40 @@ export default function Leaderboard() {
       .map((e) => e[0]);
   };
 
+  const calculateGroupMatchPoints = (pick: any, actual: any) => {
+    if (!actual || !actual.is_finished) return 0;
+
+    const predHome = Number(pick.predicted_home_goals);
+    const predAway = Number(pick.predicted_away_goals);
+    const actHome = Number(actual.home_goals);
+    const actAway = Number(actual.away_goals);
+
+    if (
+      Number.isNaN(predHome) ||
+      Number.isNaN(predAway) ||
+      Number.isNaN(actHome) ||
+      Number.isNaN(actAway)
+    ) {
+      return 0;
+    }
+
+    let pts = 0;
+
+    const actSign = actHome > actAway ? "1" : actHome < actAway ? "2" : "X";
+    const predSign = predHome > predAway ? "1" : predHome < predAway ? "2" : "X";
+
+    if (actSign === predSign) pts += 2;
+    if (predHome === actHome) pts += 1;
+    if (predAway === actAway) pts += 1;
+
+    return pts;
+  };
+
+  const normalizeTeamName = (team: any) => {
+    return String(team || "").trim().toLowerCase();
+  };
+
+
   const calculateFinalTeamBonus = (picks: any[], actuals: any[]) => {
     const finalMatch = actuals.find((r) => r.match_id === "FINAL");
 
@@ -174,7 +208,7 @@ export default function Leaderboard() {
         realGS[c] = calculateStandings(gm, act);
       });
 
-      const formatted = uR.data
+      const formatted = [...uR.data]
         .map((u: any) => {
           const p = pR.data.filter((x) => x.user_id === u.id);
 
@@ -184,26 +218,7 @@ export default function Leaderboard() {
 
           p.filter((x) => x.match_id.startsWith("G-")).forEach((x) => {
             const act = rR.data.find((r) => r.match_id === x.match_id);
-
-            if (!act || !act.is_finished) return;
-
-            const actSign =
-              act.home_goals > act.away_goals
-                ? "1"
-                : act.home_goals < act.away_goals
-                  ? "2"
-                  : "X";
-
-            const predSign =
-              x.predicted_home_goals > x.predicted_away_goals
-                ? "1"
-                : x.predicted_home_goals < x.predicted_away_goals
-                  ? "2"
-                  : "X";
-
-            if (actSign === predSign) matchPts += 2;
-            if (Number(x.predicted_home_goals) === act.home_goals) matchPts += 1;
-            if (Number(x.predicted_away_goals) === act.away_goals) matchPts += 1;
+            matchPts += calculateGroupMatchPoints(x, act);
           });
 
           const knockoutStages = ["R32", "R16", "QF", "SF", "BM", "FINAL"];
@@ -242,8 +257,10 @@ export default function Leaderboard() {
               ),
             ];
 
+            const normalizedUserPredictions = userPredictionsInStage.map(normalizeTeamName);
+
             actualWinnersInStage.forEach((winner) => {
-              if (userPredictionsInStage.includes(winner)) {
+              if (normalizedUserPredictions.includes(normalizeTeamName(winner))) {
                 matchPts += stagePoints[stage] || 0;
               }
             });
@@ -294,7 +311,7 @@ export default function Leaderboard() {
         })
         .sort((a: any, b: any) => b.total_points - a.total_points);
 
-      setLeaderboard(formatted);
+      setLeaderboard([...formatted]);
     }
 
     setLoading(false);
@@ -334,27 +351,7 @@ export default function Leaderboard() {
     let pts = 0;
 
     if (p.match_id.startsWith("G-")) {
-      if (!act || !act.is_finished) return 0;
-
-      const actSign =
-        act.home_goals > act.away_goals
-          ? "1"
-          : act.home_goals < act.away_goals
-            ? "2"
-            : "X";
-
-      const predSign =
-        p.predicted_home_goals > p.predicted_away_goals
-          ? "1"
-          : p.predicted_home_goals < p.predicted_away_goals
-            ? "2"
-            : "X";
-
-      if (actSign === predSign) pts += 2;
-      if (Number(p.predicted_home_goals) === act.home_goals) pts += 1;
-      if (Number(p.predicted_away_goals) === act.away_goals) pts += 1;
-
-      return pts;
+      return calculateGroupMatchPoints(p, act);
     }
 
     if (!p.winner_team) return 0;
@@ -379,7 +376,9 @@ export default function Leaderboard() {
       )
       .map((r) => r.winner_team);
 
-    return actualWinnersInStage.includes(p.winner_team)
+    return actualWinnersInStage
+      .map(normalizeTeamName)
+      .includes(normalizeTeamName(p.winner_team))
       ? stagePoints[stage] || 0
       : 0;
   };
