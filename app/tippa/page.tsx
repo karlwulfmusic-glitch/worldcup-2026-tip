@@ -552,7 +552,7 @@ export default function Page() {
     }
   };
 
-  if (isLocked) {
+  if (false && isLocked) {
     return (
       <div className="min-h-screen bg-[#00041a] flex flex-col items-center justify-center p-8 text-center">
         <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/50">
