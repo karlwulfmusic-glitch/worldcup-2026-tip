@@ -160,12 +160,15 @@ export default function Leaderboard() {
       return 0;
     }
 
-    let pts = 0;
-
     const actSign = actHome > actAway ? "1" : actHome < actAway ? "2" : "X";
     const predSign = predHome > predAway ? "1" : predHome < predAway ? "2" : "X";
 
-    if (actSign === predSign) pts += 2;
+    // Inga målpoäng om man har fel tecken.
+    // Exempel: tippar 1-0 men matchen slutar 1-2 = 0p, inte +1p.
+    if (actSign !== predSign) return 0;
+
+    let pts = 2;
+
     if (predHome === actHome) pts += 1;
     if (predAway === actAway) pts += 1;
 
