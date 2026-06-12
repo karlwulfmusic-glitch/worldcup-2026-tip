@@ -157,24 +157,23 @@ export default function Leaderboard() {
     return calculateStandings(groupMatches, actualAsPicks);
   };
 
-  const getGroupPlacementRows = (picksSource: any[], resultsSource: any[]) => {
-    return GROUP_CODES.flatMap((group) => {
+  const getGroupComparisonTables = (picksSource: any[], resultsSource: any[]) => {
+    return GROUP_CODES.map((group) => {
       const finishedGroupMatches = resultsSource.filter(
         (r) => r.match_id.startsWith(`G-${group}`) && r.is_finished
       ).length;
 
-      if (finishedGroupMatches < 6) return [];
-
       const groupMatches = worldCup2026Matches.filter((m) => m.group === group);
       const userTable = calculateStandings(groupMatches, picksSource);
-      const realTable = getRealGroupStandings(group, resultsSource);
+      const realTable =
+        finishedGroupMatches >= 6 ? getRealGroupStandings(group, resultsSource) : [];
 
-      return userTable.map((team, index) => {
+      const rows = userTable.map((team, index) => {
         const realIndex = realTable.indexOf(team);
         const points =
-          realIndex === index
+          finishedGroupMatches >= 6 && realIndex === index
             ? 2
-            : index < 2 && realIndex < 2 && realIndex !== -1
+            : finishedGroupMatches >= 6 && index < 2 && realIndex < 2 && realIndex !== -1
               ? 1
               : 0;
 
@@ -183,9 +182,20 @@ export default function Leaderboard() {
           team,
           predictedPlace: index + 1,
           realPlace: realIndex >= 0 ? realIndex + 1 : null,
+          realTeamAtPredictedPlace: realTable[index] || null,
           points,
+          finished: finishedGroupMatches >= 6,
         };
       });
+
+      return {
+        group,
+        finished: finishedGroupMatches >= 6,
+        userTable,
+        realTable,
+        rows,
+        points: rows.reduce((sum, row) => sum + row.points, 0),
+      };
     });
   };
 
@@ -206,6 +216,15 @@ export default function Leaderboard() {
       SF: "Vidare till final",
       BM: "Bronsvinnare",
       FINAL: "Världsmästare",
+    };
+
+    const stageShortLabels: Record<string, string> = {
+      R32: "R32",
+      R16: "R16",
+      QF: "QF",
+      SF: "SF",
+      BM: "BRONS",
+      FINAL: "GULD",
     };
 
     const stages = ["R32", "R16", "QF", "SF", "BM", "FINAL"];
@@ -243,9 +262,11 @@ export default function Leaderboard() {
 
         return {
           stage,
+          stageShort: stageShortLabels[stage] || stage,
           label: stageLabels[stage] || stage,
           team,
           points: isCorrect ? stagePoints[stage] || 0 : 0,
+          finishedCount: actualWinners.length,
           status: actualWinners.length === 0 ? "pending" : isCorrect ? "correct" : "wrong",
         };
       });
@@ -875,11 +896,14 @@ export default function Leaderboard() {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-blue-600/10 border border-blue-500/20 p-4 rounded-2xl">
                   <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">
-                    Tabellpoäng
+                    Grupptabell bonus
                   </span>
                   <div className="text-2xl font-black italic text-white mt-1">
                     +{selectedUser.group_points || 0}P
                   </div>
+                  <p className="text-[9px] text-white/35 font-bold uppercase mt-1">
+                    Räknas när gruppen är färdigspelad
+                  </p>
                 </div>
 
                 <div className="bg-yellow-600/10 border border-yellow-500/20 p-4 rounded-2xl">
@@ -889,86 +913,151 @@ export default function Leaderboard() {
                   <div className="text-2xl font-black italic text-white mt-1">
                     +{selectedUser.bonus_points || 0}P
                   </div>
+                  <p className="text-[9px] text-white/35 font-bold uppercase mt-1">
+                    Finalister + skytteliga
+                  </p>
                 </div>
               </div>
 
               {!loadingPicks && (
-                <div className="grid lg:grid-cols-2 gap-4 mb-6">
+                <div className="space-y-4 mb-6">
                   <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between gap-3 mb-4">
                       <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">
-                        Gruppplaceringar
+                        Grupptabeller — tippat vs riktigt
                       </h3>
-                      <span className="text-[10px] font-black text-white/30 uppercase">
-                        Tippad vs riktig
+                      <span className="text-[9px] font-black text-white/30 uppercase">
+                        Grön = poäng
                       </span>
                     </div>
 
-                    <div className="max-h-56 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                      {getGroupPlacementRows(userPicks, actualResults)
-                        .filter((row) => row.points > 0)
-                        .map((row, index) => (
-                          <div
-                            key={`${row.group}-${row.team}-${index}`}
-                            className="flex items-center justify-between gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-black text-white uppercase truncate">
-                                Grupp {row.group} · {row.team}
-                              </p>
-                              <p className="text-[9px] font-bold text-white/35 uppercase">
-                                Tippad #{row.predictedPlace} · Riktig #{row.realPlace}
-                              </p>
-                            </div>
-                            <span className="text-green-400 font-black italic text-sm shrink-0">
-                              +{row.points}P
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {getGroupComparisonTables(userPicks, actualResults).map((groupBlock) => (
+                        <div
+                          key={groupBlock.group}
+                          className="bg-black/20 border border-white/5 rounded-2xl p-3"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-xs font-black italic text-white uppercase">
+                              Grupp {groupBlock.group}
+                            </p>
+                            <span className={`text-[10px] font-black italic ${
+                              groupBlock.points > 0 ? "text-green-400" : "text-white/25"
+                            }`}>
+                              +{groupBlock.points}P
                             </span>
                           </div>
-                        ))}
 
-                      {getGroupPlacementRows(userPicks, actualResults).filter((row) => row.points > 0).length === 0 && (
-                        <p className="text-[10px] font-bold text-white/30 italic uppercase">
-                          Inga grupplaceringar ger poäng ännu.
-                        </p>
-                      )}
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                            <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest">
+                              Din tabell
+                            </p>
+                            <p className="text-[8px] font-black text-white/35 uppercase tracking-widest">
+                              Riktig tabell
+                            </p>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            {groupBlock.rows.map((row) => (
+                              <div
+                                key={`${groupBlock.group}-${row.team}`}
+                                className={`grid grid-cols-2 gap-2 rounded-xl px-2 py-1.5 border ${
+                                  row.points > 0
+                                    ? "bg-green-500/10 border-green-500/25"
+                                    : "bg-white/[0.02] border-white/5"
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <p className={`text-[10px] font-black uppercase truncate ${
+                                    row.points > 0 ? "text-green-300" : "text-white/55"
+                                  }`}>
+                                    #{row.predictedPlace} {row.team}
+                                  </p>
+                                  {row.finished && (
+                                    <p className="text-[8px] font-bold text-white/30 uppercase">
+                                      Riktig plats: {row.realPlace ? `#${row.realPlace}` : "Ej topp"}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-black uppercase truncate text-white/45">
+                                    #{row.predictedPlace} {row.realTeamAtPredictedPlace || "Ej klar"}
+                                  </p>
+                                  <p className={`text-[8px] font-black uppercase ${
+                                    row.points > 0 ? "text-green-400" : "text-white/20"
+                                  }`}>
+                                    {row.finished
+                                      ? row.points === 2
+                                        ? "+2 exakt"
+                                        : row.points === 1
+                                          ? "+1 topp 2"
+                                          : "0p"
+                                      : "Ej klar"}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   <div className="bg-orange-500/5 border border-orange-500/20 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between gap-3 mb-4">
                       <h3 className="text-[10px] font-black text-orange-400 uppercase tracking-widest italic">
-                        Slutspelsavancemang
+                        Slutspel — lag som gått vidare
                       </h3>
-                      <span className="text-[10px] font-black text-white/30 uppercase">
-                        Lag vidare = poäng
+                      <span className="text-[9px] font-black text-white/30 uppercase">
+                        Grön = laget nådde rundan
                       </span>
                     </div>
 
-                    <div className="max-h-56 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                      {getKnockoutProgressRows(userPicks, actualResults)
-                        .filter((row) => row.points > 0)
-                        .map((row, index) => (
-                          <div
-                            key={`${row.stage}-${row.team}-${index}`}
-                            className="flex items-center justify-between gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-black text-white uppercase truncate">
-                                {row.team}
-                              </p>
-                              <p className="text-[9px] font-bold text-orange-300/70 uppercase">
-                                {row.label}
-                              </p>
-                            </div>
-                            <span className="text-green-400 font-black italic text-sm shrink-0">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {getKnockoutProgressRows(userPicks, actualResults).map((row, index) => (
+                        <div
+                          key={`${row.stage}-${row.team}-${index}`}
+                          className={`rounded-2xl px-3 py-3 border ${
+                            row.status === "correct"
+                              ? "bg-green-500/10 border-green-500/30"
+                              : row.status === "wrong"
+                                ? "bg-white/[0.02] border-white/5 opacity-55"
+                                : "bg-orange-500/5 border-orange-500/15"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${
+                              row.status === "correct" ? "text-green-400" : "text-orange-300/60"
+                            }`}>
+                              {row.stageShort}
+                            </span>
+                            <span className={`text-xs font-black italic ${
+                              row.status === "correct" ? "text-green-400" : "text-white/20"
+                            }`}>
                               +{row.points}P
                             </span>
                           </div>
-                        ))}
 
-                      {getKnockoutProgressRows(userPicks, actualResults).filter((row) => row.points > 0).length === 0 && (
+                          <p className={`text-[11px] font-black uppercase italic truncate mt-1 ${
+                            row.status === "correct" ? "text-white" : "text-white/45"
+                          }`}>
+                            {row.team}
+                          </p>
+
+                          <p className="text-[8px] font-bold uppercase text-white/25 mt-1">
+                            {row.status === "pending"
+                              ? "Ej avgjort ännu"
+                              : row.status === "correct"
+                                ? row.label
+                                : "Nådde ej denna runda"}
+                          </p>
+                        </div>
+                      ))}
+
+                      {getKnockoutProgressRows(userPicks, actualResults).length === 0 && (
                         <p className="text-[10px] font-bold text-white/30 italic uppercase">
-                          Inga slutspelsavancemang ger poäng ännu.
+                          Inga slutspelstips valda ännu.
                         </p>
                       )}
                     </div>
