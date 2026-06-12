@@ -10,7 +10,7 @@ import {
   WorldCupMatch,
 } from "../../lib/worldcup2026";
 
-const WORLD_CUP_START_TIME = new Date("2026-06-11T20:00:00Z");
+const WORLD_CUP_START_TIME = new Date("2026-06-12T02:04:00+02:00");
 
 const formatMatchDateTime = (dateUtc: string) => {
   const parts = new Intl.DateTimeFormat("sv-SE", {
@@ -53,7 +53,7 @@ const KNOCKOUT_TREE: Record<
 };
 
 export default function Page() {
-  const [isLocked, setIsLocked] = useState(false); // FORCE OPEN
+  const [isLocked, setIsLocked] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [koStep, setKoStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,8 +68,13 @@ export default function Page() {
   const [koWinners, setKoWinners] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // TEMPORÄRT ÖPPEN FÖR ALLA - låsningen är avstängd.
-    setIsLocked(false);
+    const checkStatus = () => {
+      if (new Date() >= WORLD_CUP_START_TIME) setIsLocked(true);
+    };
+
+    checkStatus();
+    const timer = setInterval(checkStatus, 10000);
+    return () => clearInterval(timer);
   }, []);
 
   const stages = [
@@ -547,7 +552,7 @@ export default function Page() {
     }
   };
 
-  if (false) {
+  if (isLocked) {
     return (
       <div className="min-h-screen bg-[#00041a] flex flex-col items-center justify-center p-8 text-center">
         <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/50">
