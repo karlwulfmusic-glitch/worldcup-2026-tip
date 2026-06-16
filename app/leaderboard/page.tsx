@@ -9,7 +9,7 @@ const getStageKey = (matchId: string) => {
   if (matchId.startsWith("R16")) return "R16";
   if (matchId.startsWith("QF")) return "QF";
   if (matchId.startsWith("SF")) return "SF";
-  if (matchId === "BM") return "BM";
+  if (matchId === "BM" || matchId === "BRONZE") return "BM";
   if (matchId === "FINAL") return "FINAL";
   return "";
 };
@@ -36,6 +36,7 @@ const KNOCKOUT_TREE: Record<
   "SF-2": { home: "QF-3", away: "QF-4" },
 
   BM: { home: "SF-1", away: "SF-2", isLoser: true },
+  BRONZE: { home: "SF-1", away: "SF-2", isLoser: true },
   FINAL: { home: "SF-1", away: "SF-2" },
 };
 
@@ -517,6 +518,7 @@ export default function Leaderboard() {
     if (!match) return null;
 
     const rawDate =
+      match.dateUtc ||
       match.date ||
       match.matchDate ||
       match.day ||
@@ -541,6 +543,7 @@ export default function Leaderboard() {
         : null,
       rawDate && rawTime ? `${rawDate} ${rawTime}` : null,
       rawDate,
+      match.dateUtc,
       match.datetime,
       match.kickoff,
       match.startTime,
@@ -587,6 +590,7 @@ export default function Leaderboard() {
     }
 
     const rawDate =
+      match?.dateUtc ||
       match?.date ||
       match?.matchDate ||
       match?.day ||
@@ -712,7 +716,7 @@ export default function Leaderboard() {
     if (matchId.startsWith("R16")) return "Åttondel";
     if (matchId.startsWith("QF")) return "Kvartsfinal";
     if (matchId.startsWith("SF")) return "Semifinal";
-    if (matchId === "BM") return "Bronsmatch";
+    if (matchId === "BM" || matchId === "BRONZE") return "Bronsmatch";
     if (matchId === "FINAL") return "FINAL";
     return matchId;
   };
@@ -748,7 +752,7 @@ export default function Leaderboard() {
 
     if (sortedPicks.length === 0) {
       return (
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5">
+        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-5 sm:p-6">
           <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest italic mb-2">
             {title}
           </h3>
@@ -760,9 +764,9 @@ export default function Leaderboard() {
     }
 
     return (
-      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">
+      <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-4 px-1">
+          <h3 className="text-[10px] sm:text-xs font-black text-blue-400 uppercase tracking-widest italic">
             {title}
           </h3>
           <span className="text-[9px] font-black text-white/30 uppercase">
@@ -770,8 +774,102 @@ export default function Leaderboard() {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-separate border-spacing-y-2">
+        <div className="space-y-2 sm:hidden">
+          {sortedPicks.map((p) => {
+            const m = worldCup2026Matches.find((x) => x.id === p.match_id);
+            const a = actualResults.find((r) => r.match_id === p.match_id);
+            const fin = a?.is_finished;
+            const isGroup = p.match_id.startsWith("G-");
+            const livePts = calculateLiveMatchPoints(p, a);
+            const userSimulatedMatchup = !isGroup
+              ? getSimulatedMatchup(p.match_id, userPicks)
+              : "";
+
+            return (
+              <div
+                key={p.id}
+                className={`rounded-2xl border p-3 ${
+                  fin
+                    ? "bg-white/[0.045] border-white/10"
+                    : "bg-white/[0.018] border-white/5 opacity-75"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                      <span className="bg-blue-500/15 text-blue-300 border border-blue-500/20 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest">
+                        {getStageName(p.match_id)}
+                      </span>
+                      <span className="bg-white/5 text-white/45 border border-white/5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest">
+                        {getMatchTimeLabel(p.match_id)}
+                      </span>
+                    </div>
+
+                    <p className="text-[13px] font-black italic uppercase leading-tight text-white truncate">
+                      {isGroup
+                        ? `${m?.home?.name || "TBD"} - ${m?.away?.name || "TBD"}`
+                        : userSimulatedMatchup}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div className="bg-black/25 border border-white/5 rounded-xl p-2 min-w-0">
+                        <p className="text-[8px] font-black uppercase text-white/25 tracking-widest mb-1">
+                          Tippat
+                        </p>
+                        <p className="text-[12px] font-black italic uppercase truncate text-white/80">
+                          {isGroup
+                            ? `${p.predicted_home_goals}-${p.predicted_away_goals}`
+                            : p.winner_team || "EJ VALD"}
+                        </p>
+                      </div>
+
+                      <div className="bg-black/25 border border-white/5 rounded-xl p-2 min-w-0">
+                        <p className="text-[8px] font-black uppercase text-white/25 tracking-widest mb-1">
+                          Resultat
+                        </p>
+                        <p
+                          className={`text-[12px] font-black italic uppercase truncate ${
+                            fin ? "text-blue-300" : "text-white/25"
+                          }`}
+                        >
+                          {fin
+                            ? isGroup
+                              ? `${a.home_goals}-${a.away_goals}`
+                              : a.winner_team || "TBD"
+                            : "Ej spelad"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <div
+                      className={`min-w-12 rounded-2xl border px-2.5 py-2 ${
+                        livePts > 0
+                          ? "bg-green-500/10 border-green-500/30"
+                          : "bg-white/5 border-white/5"
+                      }`}
+                    >
+                      <p
+                        className={`text-2xl font-black italic leading-none ${
+                          livePts > 0 ? "text-green-400" : "text-white/25"
+                        }`}
+                      >
+                        {livePts}
+                      </p>
+                      <p className="text-[8px] font-black text-white/25 uppercase">
+                        poäng
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full min-w-[780px] text-left border-separate border-spacing-y-2">
             <thead className="text-[9px] font-black text-white/20 uppercase tracking-widest sticky top-0 bg-[#0b0d17] z-10">
               <tr>
                 <th className="px-4 py-2">Fas / Tid</th>
@@ -884,34 +982,34 @@ export default function Leaderboard() {
 
   return (
     <main className="min-h-screen bg-[#00041a] text-white font-sans pb-20">
-      <header className="p-4 flex justify-between items-center border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#00041a]/90">
-        <h1 className="text-xl font-black italic tracking-tighter uppercase">
+      <header className="px-3 py-3 sm:p-4 flex justify-between items-center gap-3 border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#00041a]/90">
+        <h1 className="text-lg sm:text-xl font-black italic tracking-tighter uppercase whitespace-nowrap">
           WULFENS <span className="text-blue-500">LIVE</span>
         </h1>
 
         <button
           onClick={() => setShowInfo(true)}
-          className="bg-blue-600 px-4 py-1.5 rounded-full font-black uppercase italic text-[10px] tracking-widest"
+          className="bg-blue-600 px-3 sm:px-4 py-2 sm:py-1.5 rounded-full font-black uppercase italic text-[9px] sm:text-[10px] tracking-widest whitespace-nowrap active:scale-95 transition-transform"
         >
           Poäng & Regler
         </button>
       </header>
 
-      <div className="max-w-[1200px] mx-auto px-4 mt-10">
-        <div className="text-center mb-10">
-          <h2 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-4">
+      <div className="max-w-[1200px] mx-auto px-3 sm:px-4 mt-6 sm:mt-10">
+        <div className="text-center mb-6 sm:mb-10">
+          <h2 className="text-4xl sm:text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-4">
             LEADERBOARD
           </h2>
 
-          <div className="inline-block bg-white/5 border border-white/10 px-8 py-3 rounded-2xl backdrop-blur-sm">
+          <div className="inline-block bg-white/5 border border-white/10 px-6 sm:px-8 py-3 rounded-2xl backdrop-blur-sm">
             <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1">
               Total Potential Pot
             </p>
-            <p className="text-3xl font-black italic">{pot} KR</p>
+            <p className="text-2xl sm:text-3xl font-black italic">{pot} KR</p>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto space-y-3">
+        <div className="max-w-4xl mx-auto space-y-2.5 sm:space-y-3">
           {leaderboard.map((p, i) => {
             const pos = getLeaderboardRank(i);
             const top = pos <= 3;
@@ -926,17 +1024,17 @@ export default function Leaderboard() {
                 <div
                   className={`relative flex items-center rounded-2xl border transition-all active:scale-[0.99] ${
                     pos === 1
-                      ? "h-24 border-yellow-500 bg-yellow-400 text-black"
+                      ? "min-h-20 sm:h-24 border-yellow-500 bg-yellow-400 text-black"
                       : top
-                        ? "h-20 border-slate-300 bg-slate-200 text-black"
-                        : "h-16 border-white/5 bg-white/[0.03] hover:bg-white/[0.06]"
+                        ? "min-h-20 border-slate-300 bg-slate-200 text-black"
+                        : "min-h-16 border-white/5 bg-white/[0.03] hover:bg-white/[0.06]"
                   }`}
                 >
-                  <div className="w-full px-8 flex items-center justify-between">
-                    <div className="flex items-center gap-6 min-w-0 flex-1">
+                  <div className="w-full px-4 sm:px-8 py-3 sm:py-0 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 sm:gap-6 min-w-0 flex-1">
                       <span
                         className={`text-3xl font-black italic ${
-                          top ? "opacity-30" : "text-blue-500 w-10"
+                          top ? "opacity-30" : "text-blue-500 w-9 sm:w-10"
                         }`}
                       >
                         #{pos}
@@ -945,7 +1043,7 @@ export default function Leaderboard() {
                       <div className="truncate">
                         <p
                           className={`font-black italic uppercase leading-none truncate ${
-                            top ? "text-2xl" : "text-lg"
+                            top ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
                           }`}
                         >
                           {p.name}
@@ -964,7 +1062,7 @@ export default function Leaderboard() {
                     <div className="text-right shrink-0">
                       <div
                         className={`font-black italic leading-none ${
-                          top ? "text-4xl" : "text-2xl text-blue-400"
+                          top ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl text-blue-400"
                         }`}
                       >
                         {p.total_points}P
@@ -986,14 +1084,14 @@ export default function Leaderboard() {
 
       {showInfo && (
         <div
-          className="fixed inset-0 bg-[#00041a]/98 flex items-center justify-center p-4 z-[200] backdrop-blur-2xl"
+          className="fixed inset-0 bg-[#00041a]/98 flex items-end sm:items-center justify-center p-0 sm:p-4 z-[200] backdrop-blur-2xl"
           onClick={() => setShowInfo(false)}
         >
           <div
-            className="bg-[#0b0d17] border border-white/10 w-full max-w-xl rounded-[2.5rem] p-8 shadow-2xl max-h-[85vh] overflow-y-auto"
+            className="bg-[#0b0d17] border border-white/10 w-full sm:max-w-xl rounded-t-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 shadow-2xl max-h-[92vh] sm:max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-3xl font-black italic uppercase text-blue-500 mb-8 tracking-tighter">
+            <h3 className="text-2xl sm:text-3xl font-black italic uppercase text-blue-500 mb-6 sm:mb-8 tracking-tighter">
               POÄNGSYSTEM
             </h3>
 
@@ -1046,7 +1144,7 @@ export default function Leaderboard() {
                   Slutspel
                 </h4>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
                     <p className="text-[10px] uppercase text-white/40 font-black">
                       R32
@@ -1130,16 +1228,16 @@ export default function Leaderboard() {
 
       {selectedUser && (
         <div
-          className="fixed inset-0 bg-[#00041a]/95 flex items-center justify-center p-4 z-[100] backdrop-blur-md"
+          className="fixed inset-0 bg-[#00041a]/95 flex items-end sm:items-center justify-center p-0 sm:p-4 z-[100] backdrop-blur-md"
           onClick={() => setSelectedUser(null)}
         >
           <div
-            className="bg-[#0b0d17] w-full max-w-5xl max-h-[90vh] rounded-[2.5rem] border border-white/10 flex flex-col overflow-hidden"
+            className="bg-[#0b0d17] w-full sm:max-w-5xl h-[94vh] sm:h-auto sm:max-h-[90vh] rounded-t-[2rem] sm:rounded-[2.5rem] border border-white/10 flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <div className="border-l-8 border-blue-600 pl-4">
-                <h2 className="text-3xl font-black italic uppercase leading-none">
+            <div className="p-4 sm:p-6 border-b border-white/5 flex justify-between items-center gap-3 bg-white/[0.02]">
+              <div className="border-l-4 sm:border-l-8 border-blue-600 pl-3 sm:pl-4 min-w-0">
+                <h2 className="text-2xl sm:text-3xl font-black italic uppercase leading-none truncate">
                   {selectedUser.name}
                 </h2>
                 <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">
@@ -1149,15 +1247,15 @@ export default function Leaderboard() {
 
               <button
                 onClick={() => setSelectedUser(null)}
-                className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+                className="w-10 h-10 shrink-0 bg-white/5 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex-grow overflow-y-auto p-6 custom-scrollbar space-y-6">
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-blue-600/10 border border-blue-500/20 p-4 rounded-2xl">
+            <div className="flex-grow overflow-y-auto p-3 sm:p-6 custom-scrollbar space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
+                <div className="bg-blue-600/10 border border-blue-500/20 p-3 sm:p-4 rounded-2xl">
                   <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">
                     Grupptabell bonus
                   </span>
@@ -1169,7 +1267,7 @@ export default function Leaderboard() {
                   </p>
                 </div>
 
-                <div className="bg-yellow-600/10 border border-yellow-500/20 p-4 rounded-2xl">
+                <div className="bg-yellow-600/10 border border-yellow-500/20 p-3 sm:p-4 rounded-2xl">
                   <span className="text-[9px] font-black text-yellow-400 uppercase tracking-widest">
                     Specialpoäng
                   </span>
@@ -1195,8 +1293,8 @@ export default function Leaderboard() {
                     "Inga gruppspelstips valda ännu."
                   )}
 
-                  <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-4">
-                    <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="bg-blue-500/5 border border-blue-500/20 rounded-3xl p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-4">
                       <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">
                         2. Gruppspelstabell — tippat vs riktigt
                       </h3>
@@ -1205,12 +1303,12 @@ export default function Leaderboard() {
                       </span>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-3">
+                    <div className="grid md:grid-cols-2 gap-2 sm:gap-3">
                       {getGroupComparisonTables(userPicks, actualResults).map(
                         (groupBlock) => (
                           <div
                             key={groupBlock.group}
-                            className="bg-black/20 border border-white/5 rounded-2xl p-3"
+                            className="bg-black/20 border border-white/5 rounded-2xl p-2.5 sm:p-3"
                           >
                             <div className="flex items-center justify-between mb-3">
                               <p className="text-xs font-black italic text-white uppercase">
@@ -1296,8 +1394,8 @@ export default function Leaderboard() {
                     </div>
                   </div>
 
-                  <div className="bg-orange-500/5 border border-orange-500/20 rounded-2xl p-4">
-                    <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="bg-orange-500/5 border border-orange-500/20 rounded-3xl p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-4">
                       <h3 className="text-[10px] font-black text-orange-400 uppercase tracking-widest italic">
                         3. Slutspel — lag som gått vidare
                       </h3>
@@ -1306,7 +1404,7 @@ export default function Leaderboard() {
                       </span>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                       {getKnockoutProgressRows(userPicks, actualResults).map(
                         (row, index) => (
                           <div
