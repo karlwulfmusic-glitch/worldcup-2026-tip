@@ -781,6 +781,7 @@ export default function Leaderboard() {
             const fin = a?.is_finished;
             const isGroup = p.match_id.startsWith("G-");
             const livePts = calculateLiveMatchPoints(p, a);
+            const isFinishedZero = fin && livePts === 0;
             const userSimulatedMatchup = !isGroup
               ? getSimulatedMatchup(p.match_id, userPicks)
               : "";
@@ -789,9 +790,11 @@ export default function Leaderboard() {
               <div
                 key={p.id}
                 className={`rounded-2xl border p-3 ${
-                  fin
-                    ? "bg-white/[0.045] border-white/10"
-                    : "bg-white/[0.018] border-white/5 opacity-75"
+                  isFinishedZero
+                    ? "bg-red-500/[0.075] border-red-500/20"
+                    : fin
+                      ? "bg-white/[0.045] border-white/10"
+                      : "bg-white/[0.018] border-white/5 opacity-75"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -847,12 +850,18 @@ export default function Leaderboard() {
                       className={`min-w-12 rounded-2xl border px-2.5 py-2 ${
                         livePts > 0
                           ? "bg-green-500/10 border-green-500/30"
-                          : "bg-white/5 border-white/5"
+                          : isFinishedZero
+                            ? "bg-red-500/10 border-red-500/25"
+                            : "bg-white/5 border-white/5"
                       }`}
                     >
                       <p
                         className={`text-2xl font-black italic leading-none ${
-                          livePts > 0 ? "text-green-400" : "text-white/25"
+                          livePts > 0
+                            ? "text-green-400"
+                            : isFinishedZero
+                              ? "text-red-300"
+                              : "text-white/25"
                         }`}
                       >
                         {livePts}
@@ -889,6 +898,7 @@ export default function Leaderboard() {
                 const fin = a?.is_finished;
                 const isGroup = p.match_id.startsWith("G-");
                 const livePts = calculateLiveMatchPoints(p, a);
+                const isFinishedZero = fin && livePts === 0;
 
                 const userSimulatedMatchup = !isGroup
                   ? getSimulatedMatchup(p.match_id, userPicks)
@@ -898,8 +908,12 @@ export default function Leaderboard() {
                   <tr
                     key={p.id}
                     className={`${
-                      fin ? "bg-white/[0.04]" : "bg-white/[0.01] opacity-60"
-                    } rounded-xl transition-all hover:bg-white/[0.06]`}
+                      isFinishedZero
+                        ? "bg-red-500/[0.07] hover:bg-red-500/[0.10]"
+                        : fin
+                          ? "bg-white/[0.04] hover:bg-white/[0.06]"
+                          : "bg-white/[0.01] opacity-60 hover:bg-white/[0.06]"
+                    } rounded-xl transition-all`}
                   >
                     <td className="px-4 py-3 rounded-l-xl border-l border-y border-white/5">
                       <span className="text-[10px] text-blue-500 block mb-0.5">
@@ -955,7 +969,9 @@ export default function Leaderboard() {
                         className={
                           livePts > 0
                             ? "text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.5)]"
-                            : "text-white/20"
+                            : isFinishedZero
+                              ? "text-red-300 drop-shadow-[0_0_8px_rgba(248,113,113,0.25)]"
+                              : "text-white/20"
                         }
                       >
                         {livePts}
