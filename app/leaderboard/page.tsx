@@ -237,10 +237,10 @@ export default function Leaderboard() {
             .filter(
               (r) =>
                 r.is_finished &&
-                r.winner_team &&
+                getAdvancedTeam(r) &&
                 getStageKey(r.match_id) === stage
             )
-            .map((r) => r.winner_team)
+            .map(getAdvancedTeam)
         ),
       ];
 
@@ -311,27 +311,53 @@ export default function Leaderboard() {
     return String(team || "").trim().toLowerCase();
   };
 
+  const getAdvancedTeam = (result: any) => {
+    if (!result || !result.is_finished) return "";
+
+    // För slutspel: använd advanced_team om den finns.
+    // Detta är säkrast vid straffar/oavgjort resultat.
+    if (result.advanced_team) {
+      return String(result.advanced_team).trim();
+    }
+
+    // Fallback: om matchen inte är oavgjord kan vinnaren räknas från målen.
+    const homeGoals = Number(result.home_goals);
+    const awayGoals = Number(result.away_goals);
+
+    if (!Number.isNaN(homeGoals) && !Number.isNaN(awayGoals)) {
+      if (homeGoals > awayGoals) return String(result.home_name || "").trim();
+      if (awayGoals > homeGoals) return String(result.away_name || "").trim();
+    }
+
+    // Bakåtkompatibelt om gammal winner_team-kolumn finns kvar.
+    if (result.winner_team) {
+      return String(result.winner_team).trim();
+    }
+
+    return "";
+  };
+
 
   const calculateFinalTeamBonus = (picks: any[], actuals: any[]) => {
-    const finalMatch = actuals.find((r) => r.match_id === "FINAL");
-
-    if (!finalMatch || !finalMatch.is_finished) return 0;
-
-    const actualFinalists = [finalMatch.home_name, finalMatch.away_name]
+    const actualFinalists = actuals
+      .filter((r) => r.is_finished && getStageKey(r.match_id) === "SF")
+      .map(getAdvancedTeam)
       .filter(Boolean)
-      .map((team) => String(team).trim().toLowerCase());
+      .map(normalizeTeamName);
 
     if (actualFinalists.length < 2) return 0;
 
+    const uniqueActualFinalists = [...new Set(actualFinalists)];
+
     const userFinalists = picks
-      .filter((p) => p.match_id === "SF-1" || p.match_id === "SF-2")
+      .filter((p) => getStageKey(p.match_id) === "SF")
       .map((p) => p.winner_team)
       .filter(Boolean)
-      .map((team) => String(team).trim().toLowerCase());
+      .map(normalizeTeamName);
 
     const uniqueUserFinalists = [...new Set(userFinalists)];
 
-    const correctFinalTeams = actualFinalists.filter((team) =>
+    const correctFinalTeams = uniqueActualFinalists.filter((team) =>
       uniqueUserFinalists.includes(team)
     ).length;
 
@@ -421,10 +447,10 @@ export default function Leaderboard() {
                   .filter(
                     (r) =>
                       r.is_finished &&
-                      r.winner_team &&
+                      getAdvancedTeam(r) &&
                       getStageKey(r.match_id) === stage
                   )
-                  .map((r) => r.winner_team)
+                  .map(getAdvancedTeam)
               ),
             ];
 
@@ -668,16 +694,28 @@ export default function Leaderboard() {
       .filter(
         (r) =>
           r.is_finished &&
-          r.winner_team &&
+          getAdvancedTeam(r) &&
           getStageKey(r.match_id) === stage
       )
-      .map((r) => r.winner_team);
+      .map(getAdvancedTeam);
 
     return actualWinnersInStage
       .map(normalizeTeamName)
       .includes(normalizeTeamName(p.winner_team))
       ? stagePoints[stage] || 0
       : 0;
+  };
+
+  const getActualMatchup = (result: any) => {
+    if (!result || !result.is_finished) return "Ej spelad";
+
+    const home = result.home_name || "TBD";
+    const away = result.away_name || "TBD";
+    const advanced = getAdvancedTeam(result);
+
+    if (advanced) return `${home} - ${away} · Vidare: ${advanced}`;
+
+    return `${home} - ${away}`;
   };
 
   const getSimulatedMatchup = (matchId: string, picksSource: any[]) => {
@@ -838,7 +876,7 @@ export default function Leaderboard() {
                           {fin
                             ? isGroup
                               ? `${a.home_goals}-${a.away_goals}`
-                              : a.winner_team || "TBD"
+                              : getActualMatchup(a)
                             : "Ej spelad"}
                         </p>
                       </div>
@@ -959,7 +997,7 @@ export default function Leaderboard() {
                         {fin
                           ? isGroup
                             ? `${a.home_goals}-${a.away_goals}`
-                            : `Vinnare: ${a.winner_team || "TBD"}`
+                            : getActualMatchup(a)
                           : "Spelas ej än"}
                       </span>
                     </td>
