@@ -202,9 +202,9 @@ export default function Leaderboard() {
 
   const getKnockoutProgressRows = (picksSource: any[], resultsSource: any[]) => {
     const stagePoints: Record<string, number> = {
-      R32: 1,
-      R16: 2,
-      QF: 4,
+      R32: 2,
+      R16: 4,
+      QF: 6,
       SF: 8,
       BM: 5,
       FINAL: 25,
@@ -433,13 +433,13 @@ export default function Leaderboard() {
 
           knockoutStages.forEach((stage) => {
             const stagePoints: Record<string, number> = {
-              R32: 1,
-              R16: 2,
-              QF: 4,
-              SF: 8,
-              BM: 5,
-              FINAL: 25,
-            };
+      R32: 2,
+      R16: 4,
+      QF: 6,
+      SF: 8,
+      BM: 5,
+      FINAL: 25,
+    };
 
             const actualWinnersInStage = [
               ...new Set(
@@ -682,9 +682,9 @@ export default function Leaderboard() {
     const stage = getStageKey(p.match_id);
 
     const stagePoints: Record<string, number> = {
-      R32: 1,
-      R16: 2,
-      QF: 4,
+      R32: 2,
+      R16: 4,
+      QF: 6,
       SF: 8,
       BM: 5,
       FINAL: 25,
@@ -1204,7 +1204,7 @@ export default function Leaderboard() {
                       R32
                     </p>
                     <p className="text-2xl font-black italic text-orange-400">
-                      +1P
+                      +2P
                     </p>
                   </div>
 
@@ -1213,7 +1213,7 @@ export default function Leaderboard() {
                       R16
                     </p>
                     <p className="text-2xl font-black italic text-orange-400">
-                      +2P
+                      +4P
                     </p>
                   </div>
 
@@ -1222,7 +1222,7 @@ export default function Leaderboard() {
                       Kvartsfinal
                     </p>
                     <p className="text-2xl font-black italic text-orange-400">
-                      +4P
+                      +6P
                     </p>
                   </div>
 
@@ -1358,15 +1358,15 @@ export default function Leaderboard() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
                       <div className="bg-black/25 border border-white/5 rounded-2xl p-3 text-center">
                         <p className="text-[9px] font-black text-white/35 uppercase">R32</p>
-                        <p className="text-xl font-black italic text-orange-400">+1P</p>
-                      </div>
-                      <div className="bg-black/25 border border-white/5 rounded-2xl p-3 text-center">
-                        <p className="text-[9px] font-black text-white/35 uppercase">R16</p>
                         <p className="text-xl font-black italic text-orange-400">+2P</p>
                       </div>
                       <div className="bg-black/25 border border-white/5 rounded-2xl p-3 text-center">
-                        <p className="text-[9px] font-black text-white/35 uppercase">QF</p>
+                        <p className="text-[9px] font-black text-white/35 uppercase">R16</p>
                         <p className="text-xl font-black italic text-orange-400">+4P</p>
+                      </div>
+                      <div className="bg-black/25 border border-white/5 rounded-2xl p-3 text-center">
+                        <p className="text-[9px] font-black text-white/35 uppercase">QF</p>
+                        <p className="text-xl font-black italic text-orange-400">+6P</p>
                       </div>
                       <div className="bg-black/25 border border-white/5 rounded-2xl p-3 text-center">
                         <p className="text-[9px] font-black text-white/35 uppercase">SF</p>
